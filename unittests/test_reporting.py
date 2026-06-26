@@ -100,7 +100,26 @@ def test_run_report(make_runner, make_cases, common_exec_ctx, tmp_path):
     report['runs'][0]['testcases'][-1]['time_total'] = None
 
     # Validate the junit report
-    _validate_junit_report(report.generate_xml_report())
+    junit_report = report.generate_xml_report()
+    _validate_junit_report(junit_report)
+    for tc, xml_tc in zip(report['runs'][0]['testcases'],
+                          junit_report.findall('.//testcase')):
+        assert xml_tc.get('file') == tc['stagedir']
+
+        stdout = ''
+        if tc['job_stdout']:
+            stdout = reporting._tail_file(
+                os.path.join(tc['stagedir'], tc['job_stdout']), 20
+            )
+
+        stderr = ''
+        if tc['job_stderr']:
+            stderr = reporting._tail_file(
+                os.path.join(tc['stagedir'], tc['job_stderr']), 20
+            )
+
+        assert xml_tc.findtext('system-out') == stdout
+        assert xml_tc.findtext('system-err') == stderr
 
     # Read and validate the report using the `reporting` module
     reporting.restore_session(tmp_path / 'report.json')

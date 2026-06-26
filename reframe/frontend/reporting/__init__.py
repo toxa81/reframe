@@ -172,6 +172,14 @@ class _RestoredSessionInfo:
                 f'could not restore testcase {testcase!r}') from e
 
 
+def _tail_file(filename, num_lines):
+    try:
+        with open(filename, encoding='utf-8', errors='replace') as fp:
+            return ''.join(fp.readlines()[-num_lines:])
+    except OSError:
+        return ''
+
+
 def _expand_report_filename(filepatt, *, newfile):
     if '{sessionid}' not in os.fspath(filepatt):
         return filepatt
@@ -524,6 +532,7 @@ class RunReport:
                     xml_testsuite, 'testcase',
                     attrib={
                         'classname': tc['filename'],
+                        'file': tc.get('stagedir') or '',
                         'name': casename,
 
                         # XSD schema does not like the exponential format and
@@ -540,6 +549,22 @@ class RunReport:
                                                      'message': fail_phase}
                     )
                     testcase_msg.text = f"{tc['fail_phase']}: {fail_reason}"
+
+                stdout = etree.SubElement(testcase, 'system-out')
+                stderr = etree.SubElement(testcase, 'system-err')
+                stagedir = tc.get('stagedir')
+                if stagedir:
+                    job_stdout = tc.get('job_stdout')
+                    if job_stdout:
+                        stdout.text = _tail_file(
+                            os.path.join(stagedir, job_stdout), 20
+                        )
+
+                    job_stderr = tc.get('job_stderr')
+                    if job_stderr:
+                        stderr.text = _tail_file(
+                            os.path.join(stagedir, job_stderr), 20
+                        )
 
             testsuite_stdout = etree.SubElement(xml_testsuite, 'system-out')
             testsuite_stdout.text = ''
