@@ -532,7 +532,7 @@ class RunReport:
                     xml_testsuite, 'testcase',
                     attrib={
                         'classname': tc['filename'],
-                        'file': tc.get('stagedir') or '',
+                        'file': tc.get('outputdir') or '',
                         'name': casename,
 
                         # XSD schema does not like the exponential format and
@@ -552,18 +552,18 @@ class RunReport:
 
                 stdout = etree.SubElement(testcase, 'system-out')
                 stderr = etree.SubElement(testcase, 'system-err')
-                stagedir = tc.get('stagedir')
-                if stagedir:
+                jobdir = tc.get('outputdir') or tc.get('stagedir')
+                if jobdir:
                     job_stdout = tc.get('job_stdout')
                     if job_stdout:
                         stdout.text = _tail_file(
-                            os.path.join(stagedir, job_stdout), 20
+                            os.path.join(jobdir, job_stdout), 20
                         )
 
                     job_stderr = tc.get('job_stderr')
                     if job_stderr:
                         stderr.text = _tail_file(
-                            os.path.join(stagedir, job_stderr), 20
+                            os.path.join(jobdir, job_stderr), 20
                         )
 
             testsuite_stdout = etree.SubElement(xml_testsuite, 'system-out')
